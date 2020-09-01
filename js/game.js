@@ -22,7 +22,11 @@ class Tileset {
 		this.context.drawImage(this.tileset, imgX, imgY, tileSize, tileSize, x, y, size, size);
 	}
 	drawChunk(chunk, x, y, size) {
-
+		for (var j = 0; j < 32; j++) {
+			for (var i = 0; i < 32; i++) {
+				this.drawTile(chunk[i][j], x + i * size, y + j * size, size);
+			}
+		}
 	}
 }
 
@@ -31,12 +35,27 @@ class ChunkMap {
 		this.chunks = [];
 	}
 	loadChunk(fileSrc) {
+		var cm = this;
 		var req = new XMLHttpRequest();
 		req.onload = function(){
-		    console.log(this.responseText);
+		    cm.parseChunk(this.responseText);
 		};
 		req.open('GET', fileSrc);
 		req.send();
+	}
+	parseChunk(chunkString) {
+		var stringArr = chunkString.match(/[^\s]+/g);
+		var tempChunk = [];
+		for (var i = 0; i < 32; i++) {
+			var tempRow = [];
+			for (var j = 0; j < 32; j++)
+				tempRow.push(stringArr[32 * i + j]);
+			tempChunk.push(tempRow);
+		}
+		this.chunks.push(tempChunk);
+	}
+	getChunk(index) {
+		return this.chunks[index];
 	}
 }
 
@@ -61,25 +80,22 @@ setTimeout(moveLoop, 100, 0, 0);
 
 function testDraw(x, y) {
 	ctx.clearRect(0, 0, c.width, c.height);
-	for (var j = 0; j < 16; j++) {
-		for (var i = 0; i < 16; i++)
-			myTileset.drawTile(j * 16 + i, x + i * 32, y + j * 32, 32);
-	}
+	myTileset.drawChunk(myChunkMap.getChunk(0), x, y, 32);
 }
 
 function moveLoop(x, y) {
 	var d = new Date();
 	if (keysDown[37] || keysDown[65]) {          // left arrow
-		moveX(y, x, x - 32, d.getTime(), 100);
-	}
-	else if (keysDown[38] || keysDown[87]) {     // up arrow
-		moveY(x, y, y - 32, d.getTime(), 100);
-	}
-	else if (keysDown[39] || keysDown[68]) {     // right arrow
 		moveX(y, x, x + 32, d.getTime(), 100);
 	}
-	else if (keysDown[40] || keysDown[83]) {     // down arrow
+	else if (keysDown[38] || keysDown[87]) {     // up arrow
 		moveY(x, y, y + 32, d.getTime(), 100);
+	}
+	else if (keysDown[39] || keysDown[68]) {     // right arrow
+		moveX(y, x, x - 32, d.getTime(), 100);
+	}
+	else if (keysDown[40] || keysDown[83]) {     // down arrow
+		moveY(x, y, y - 32, d.getTime(), 100);
 	}
 	else {
 		setTimeout(moveLoop, 0, x, y);
