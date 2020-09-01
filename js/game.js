@@ -33,7 +33,7 @@ class ChunkMap {
 	loadChunk(fileSrc) {
 		var req = new XMLHttpRequest();
 		req.onload = function(){
-		    process_webgl_data(this.responseText);
+		    console.log(this.responseText);
 		};
 		req.open('GET', fileSrc);
 		req.send();
@@ -54,7 +54,7 @@ document.addEventListener("keyup", function(event) {
 // -------------------------------------------------------------------------------------------
 
 myChunkMap = new ChunkMap();
-myChunkMap.loadChunk("js/chunks/test");
+myChunkMap.loadChunk("https://raw.githubusercontent.com/vince8nt/RPGgame/master/chunks/test");
 
 myTileset = new Tileset(ctx, "images/tileset.png", 16, 16, 16);
 setTimeout(moveLoop, 100, 0, 0);
