@@ -1,5 +1,6 @@
 var c = document.getElementById("gameContainer");
 var ctx = c.getContext("2d");
+// pixelate canvas
 ctx.webkitImageSmoothingEnabled = false;
 ctx.mozImageSmoothingEnabled = false;
 ctx.imageSmoothingEnabled = false;
@@ -21,7 +22,7 @@ class Tileset {
 		var ts = this;
 		this.tileImage.onload = function(){
 		    ts.imageLoaded = true;
-		    console.log("Tileset: tileImage loaded: + " + imageSrc);
+		    console.log("Tileset: tileImage loaded: " + imageSrc);
 		};
 		this.tileImage.src = imageSrc;
 	}
@@ -36,7 +37,7 @@ class Tileset {
 		req.send();
 	}
 	parseData(dataString) {
-		var stringArr = mapString.match(/[^\s]+/g);
+		var stringArr = dataString.match(/[^\s]+/g);
 		this.width = parseInt(stringArr[0]);
 		this.height = parseInt(stringArr[1]);
 		this.maxTileNum = this.width * this.height - 1;
@@ -57,7 +58,7 @@ class Tileset {
 			var tileSize = this.tileSize;
 			var imgX = tileX * tileSize;
 			var imgY = tileY * tileSize;
-			context.drawImage(this.tileset, imgX, imgY, tileSize, tileSize, x, y, size, size);
+			context.drawImage(this.tileImage, imgX, imgY, tileSize, tileSize, x, y, size, size);
 		}
 	}
 	isLoaded() {
@@ -94,7 +95,6 @@ class Chunk {
 		}
 	}
 	draw(context, x, y, size) { // temporary function
-		context.clearRect(0, 0, c.width, c.height);
 		context.drawImage(this.bottomImg, x, y, size * 32, size * 32);
 		for (var j = 0; j < 32; j++)
 			context.drawImage(this.topImg[j], x, y + j * size, size * 32, size);
@@ -129,23 +129,24 @@ class ChunkMap {
 		for (var y = 0; y < this.mapHeight; y++) {
 			var tempRow = [];
 			for (var x = 0; x < this.mapWidth; x++) {
-				tempRow.push(parseInt(stringArr[2 + 32 * y + x]));
+				tempRow.push(parseInt(stringArr[2 + this.mapWidth * y + x]));
 			}
 			this.map.push(tempRow);
 		}
+		console.log("map is: " + this.map)
 	}
-	loadChunk(fileSrc) { // currently chunks need to be loaded in order
+	loadChunkData(fileSrc) { // currently chunks need to be loaded in order
 		var cm = this;
 		var req = new XMLHttpRequest();
 		req.onload = function(){
-		    cm.parseChunk(this.responseText);
-		    console.log("ChunkMap: chunk " + cm.chunkTops.length + " loaded: " + fileSrc);
+		    cm.parseChunkData(this.responseText);
+		    console.log("ChunkMap: chunk " + cm.chunkTops.length + " data loaded: " + fileSrc);
 		};
 		req.open('GET', fileSrc);
 		req.send();
 		this.length++;
 	}
-	parseChunk(chunkString) {
+	parseChunkData(chunkString) {
 		var stringArr = chunkString.match(/[^\s]+/g);
 		var tempChunkBottom = [];
 		var tempChunkTop = [];
@@ -162,11 +163,33 @@ class ChunkMap {
 		this.chunkBottoms.push(tempChunkBottom);
 		this.chunkTops.push(tempChunkTop);
 	}
-	getChunkData(index) {
+	getChunkData(x, y) {
+		const index = this.map[y][x];
+		console.log("index is: " + index)
 		return [this.chunkBottoms[index], this.chunkTops[index]];
 	}
 	isLoaded() {
 		return this.chunkTops.length == this.length && this.mapWidth != -1;
+	}
+}
+
+class ChunkDisplay { // change this for later
+	constructor(context, map, size, tileset) {
+		this.chunkTopLeft = new Chunk(tileset, map.getChunkData(0, 0));
+		this.chunkTopRight = new Chunk(tileset, map.getChunkData(1, 0));
+		this.chunkBottomLeft = new Chunk(tileset, map.getChunkData(0, 1));
+		this.chunkBottomRight = new Chunk(tileset, map.getChunkData(1, 1));
+		this.map = map;
+		this.size = size;
+		this.tileset = tileset;
+		this.context = context;
+	}
+	draw(x, y) {
+		this.context.clearRect(0, 0, c.width, c.height);
+		this.chunkTopLeft.draw(this.context, x, y, this.size);
+		this.chunkTopRight.draw(this.context, x + 32 * this.size, y, this.size);
+		this.chunkBottomLeft.draw(this.context, x, y + 32 * this.size, this.size);
+		this.chunkBottomLeft.draw(this.context, x + 32 * this.size, y + 32 * this.size, this.size);
 	}
 }
 
@@ -183,17 +206,20 @@ document.addEventListener("keyup", function(event) {
 
 // -------------------------------------------------------------------------------------------
 
+// load files
 myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
-myChunkMap.loadChunk("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
-myTileset = new Tileset("images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
-var testChunk;
+myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
+myTileset = new Tileset(
+	"images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
+
+var myChunkDisplay;
 setTimeout(waitForLoad, 100, 0, 0);
 
 function waitForLoad() {
 	if (myTileset.isLoaded() && myChunkMap.isLoaded()) {
 		console.log("all files loaded: starting game")
-		testChunk = new Chunk(myTileset, myChunkMap.getChunkData(0));
-		testChunk.draw(ctx, 0, 0, 16);
+		myChunkDisplay = new ChunkDisplay(ctx, myChunkMap, 32, myTileset);
+		myChunkDisplay.draw(0, 0);
 		setTimeout(moveLoop, 0, 0, 0);
 	}
 	else {
@@ -225,12 +251,12 @@ function moveX(y, xBegin, xEnd, beginTime, moveTime) {
 	var d = new Date();
 	moveProgress = (d.getTime() - beginTime) / moveTime;
 	if (moveProgress >= 1) { // finish move
-		testChunk.draw(ctx, xEnd, y, 16);
+		myChunkDisplay.draw(xEnd, y);
 		setTimeout(moveLoop, 0, xEnd, y);
 	}
 	else { // move part way
 		var x = xBegin + (xEnd - xBegin) * moveProgress;
-		testChunk.draw(ctx, x, y, 16);
+		myChunkDisplay.draw(x, y);
 		setTimeout(moveX, 0, y, xBegin, xEnd, beginTime, moveTime);
 	}
 }
@@ -239,12 +265,12 @@ function moveY(x, yBegin, yEnd, beginTime, moveTime) {
 	var d = new Date();
 	moveProgress = (d.getTime() - beginTime) / moveTime;
 	if (moveProgress >= 1) { // finish move
-		testChunk.draw(ctx, x, yEnd, 16);
+		myChunkDisplay.draw(x, yEnd);
 		setTimeout(moveLoop, 0, x, yEnd);
 	}
 	else { // move part way
 		var y = yBegin + (yEnd - yBegin) * moveProgress;
-		testChunk.draw(ctx, x, y, 16);
+		myChunkDisplay.draw(x, y);
 		setTimeout(moveY, 0, x, yBegin, yEnd, beginTime, moveTime);
 	}
 }
