@@ -1,9 +1,3 @@
-var c = document.getElementById("gameContainer");
-var ctx = c.getContext("2d");
-// pixelate canvas
-ctx.webkitImageSmoothingEnabled = false;
-ctx.mozImageSmoothingEnabled = false;
-ctx.imageSmoothingEnabled = false;
 
 class Tileset {
 	constructor(imageSrc, fileSrc) {
@@ -193,93 +187,6 @@ class ChunkDisplay { // change this for later
 		this.chunkBottomRight.draw(this.context, x + 32 * this.size, y + 32 * this.size, this.size);
 	}
 }
-
-var keysDown = [];
-for (var i = 0; i < 256; i++)
-	keysDown[i] = false;
-document.addEventListener("keydown", function(event) {
-	keysDown[event.keyCode] = true;
-});
-document.addEventListener("keyup", function(event) {
-	keysDown[event.keyCode] = false;
-});
-
-
-// -------------------------------------------------------------------------------------------
-
-// load files
-myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
-
-myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/empty");
-myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
-
-
-myTileset = new Tileset(
-	"images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
-
-var myChunkDisplay;
-setTimeout(waitForLoad, 100, 0, 0);
-
-function waitForLoad() {
-	if (myTileset.isLoaded() && myChunkMap.isLoaded()) {
-		console.log("all files loaded: starting game")
-		myChunkDisplay = new ChunkDisplay(ctx, myChunkMap, 32, myTileset);
-		myChunkDisplay.draw(0, 0);
-		setTimeout(moveLoop, 0, 0, 0);
-	}
-	else {
-		console.log("not all files loaded: trying again in 1 second...")
-		setTimeout(waitForLoad, 1000, 0, 0);
-	}
-}
-
-function moveLoop(x, y) {
-	var d = new Date();
-	if (keysDown[37] || keysDown[65]) {          // 'leftArrow' or 'a'
-		moveX(y, x, x + 32, d.getTime(), 100);
-	}
-	else if (keysDown[38] || keysDown[87]) {     // 'upArrow' or 'w'
-		moveY(x, y, y + 32, d.getTime(), 100);
-	}
-	else if (keysDown[39] || keysDown[68]) {     // 'rightArrow' or 'd'
-		moveX(y, x, x - 32, d.getTime(), 100);
-	}
-	else if (keysDown[40] || keysDown[83]) {     // 'downArrow' or 's'
-		moveY(x, y, y - 32, d.getTime(), 100);
-	}
-	else {
-		setTimeout(moveLoop, 0, x, y);
-	}
-}
-
-function moveX(y, xBegin, xEnd, beginTime, moveTime) {
-	var d = new Date();
-	moveProgress = (d.getTime() - beginTime) / moveTime;
-	if (moveProgress >= 1) { // finish move
-		myChunkDisplay.draw(xEnd, y);
-		setTimeout(moveLoop, 0, xEnd, y);
-	}
-	else { // move part way
-		var x = xBegin + (xEnd - xBegin) * moveProgress;
-		myChunkDisplay.draw(x, y);
-		setTimeout(moveX, 0, y, xBegin, xEnd, beginTime, moveTime);
-	}
-}
-
-function moveY(x, yBegin, yEnd, beginTime, moveTime) {
-	var d = new Date();
-	moveProgress = (d.getTime() - beginTime) / moveTime;
-	if (moveProgress >= 1) { // finish move
-		myChunkDisplay.draw(x, yEnd);
-		setTimeout(moveLoop, 0, x, yEnd);
-	}
-	else { // move part way
-		var y = yBegin + (yEnd - yBegin) * moveProgress;
-		myChunkDisplay.draw(x, y);
-		setTimeout(moveY, 0, x, yBegin, yEnd, beginTime, moveTime);
-	}
-}
-
 
 
 
