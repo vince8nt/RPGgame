@@ -10,21 +10,24 @@ class Tileset {
 		this.tileset = new Image();
 		var ts = this;
 		this.tileset.onload = function(){
-			console.log("tileset loaded");
+			console.log("Tileset: " + imageSrc + " loaded");
 		    ts.loaded = true;
 		};
 		this.tileset.src = imageSrc;
 		this.width = width;
 		this.height = height;
+		this.maxTileNum = width * height - 1;
 		this.tileSize = tileSize;
 	}
 	drawTile(context, tileNum, x, y, size) {
-		var tileX = tileNum % this.width;
-		var tileY = Math.floor(tileNum / this.width);
-		var tileSize = this.tileSize;
-		var imgX = tileX * tileSize;
-		var imgY = tileY * tileSize;
-		context.drawImage(this.tileset, imgX, imgY, tileSize, tileSize, x, y, size, size);
+		if(0 <= tileNum && tileNum <= this.maxTileNum) {
+			var tileX = tileNum % this.width;
+			var tileY = Math.floor(tileNum / this.width);
+			var tileSize = this.tileSize;
+			var imgX = tileX * tileSize;
+			var imgY = tileY * tileSize;
+			context.drawImage(this.tileset, imgX, imgY, tileSize, tileSize, x, y, size, size);
+		}
 	}
 	isLoaded() {
 		return this.loaded;
@@ -33,10 +36,8 @@ class Tileset {
 
 class Chunk {
 	constructor(tileset, data) {
-		this.bottomImg;
-		this.topImg;
-		console.log("new chunk made:");
-		console.log(data);
+		this.bottomImg = new Image();
+		this.topImg = new Image();
 		this.renderBottom(tileset, data[0]);
 		this.renderTop(tileset, data[1]);
 	}
@@ -47,7 +48,8 @@ class Chunk {
 			for (var x = 0; x < 32; x++)
 				tileset.drawTile(context, bottomData[y][x], x * 16, y * 16, 16);
 		}
-		this.bottomImg = context.getImageData(0, 0, 512, 512);
+		// would like to make it push an image instead, but causes security probem
+		this.bottomImg = canvas;
 	}
 	renderTop(tileset, topData) {
 		this.topImg = [];
@@ -56,10 +58,12 @@ class Chunk {
 			const context = canvas.getContext('2d');
 			for (var x = 0; x < 32; x++)
 				tileset.drawTile(context, topData[y][x], x * 16, 0, 16);
-			this.topImg.push(context.getImageData(0, 0, 512, 16));
+			// would like to make it push an image instead, but causes security probem
+			this.topImg.push(canvas);
 		}
 	}
 	draw(context, x, y, size) { // temporary function
+		context.clearRect(0, 0, c.width, c.height);
 		context.drawImage(this.bottomImg, x, y, size * 32, size * 32);
 		for (var j = 0; j < 32; j++)
 			context.drawImage(this.topImg[j], x, y + j * size, size * 32, size);
@@ -67,10 +71,36 @@ class Chunk {
 }
 
 class ChunkMap {
-	constructor() {
+	constructor(fileSrc) {
+		this.mapWidth = -1;
+		this.mapHeight = -1;
+		this.map = [];
 		this.chunkBottoms = [];
 		this.chunkTops = [];
 		this.length = 0;
+		this.loadMap(fileSrc);
+	}
+	loadMap(fileSrc) {
+		var cm = this;
+		var req = new XMLHttpRequest();
+		req.onload = function(){
+		    cm.parseMap(this.responseText);
+		};
+		req.open('GET', fileSrc);
+		req.send();
+	}
+	parseMap(mapString) {
+		var stringArr = mapString.match(/[^\s]+/g);
+		this.mapWidth = parseInt(stringArr[0]);
+		this.mapHeight = parseInt(stringArr[1]);
+		this.map = [];
+		for (var y = 0; y < this.mapHeight; y++) {
+			var tempRow = [];
+			for (var x = 0; x < this.mapWidth; x++) {
+				tempRow.push(parseInt(stringArr[2 + 32 * y + x]));
+			}
+			this.map.push(tempRow);
+		}
 	}
 	loadChunk(fileSrc) { // currently chunks need to be loaded in order
 		var cm = this;
@@ -98,12 +128,13 @@ class ChunkMap {
 		}
 		this.chunkBottoms.push(tempChunkBottom);
 		this.chunkTops.push(tempChunkTop);
+		console.log("ChunkMap: chunk data " + this.chunkTops.length + " loaded");
 	}
 	getChunk(index) {
 		return [this.chunkBottoms[index], this.chunkTops[index]];
 	}
 	isLoaded() {
-		return this.chunkTops.length == this.length;
+		return this.chunkTops.length == this.length && this.mapWidth != -1;
 	}
 }
 
@@ -120,7 +151,7 @@ document.addEventListener("keyup", function(event) {
 
 // -------------------------------------------------------------------------------------------
 
-myChunkMap = new ChunkMap();
+myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/chunks/chunkMap");
 myChunkMap.loadChunk("https://raw.githubusercontent.com/vince8nt/RPGgame/master/chunks/test");
 myTileset = new Tileset("images/tileset.png", 16, 16, 16);
 var testChunk;
@@ -128,25 +159,29 @@ setTimeout(waitForLoad, 100, 0, 0);
 
 function waitForLoad() {
 	if (myTileset.isLoaded() && myChunkMap.isLoaded()) {
+		console.log("all files loaded: starting game")
 		testChunk = new Chunk(myTileset, myChunkMap.getChunk(0));
+		testChunk.draw(ctx, 0, 0, 16);
 		setTimeout(moveLoop, 0, 0, 0);
 	}
-	else
-		setTimeout(waitForLoad, 500, 0, 0);
+	else {
+		console.log("not all files loaded: trying again in 1 second...")
+		setTimeout(waitForLoad, 1000, 0, 0);
+	}
 }
 
 function moveLoop(x, y) {
 	var d = new Date();
-	if (keysDown[37] || keysDown[65]) {          // left arrow
+	if (keysDown[37] || keysDown[65]) {          // 'leftArrow' or 'a'
 		moveX(y, x, x + 32, d.getTime(), 100);
 	}
-	else if (keysDown[38] || keysDown[87]) {     // up arrow
+	else if (keysDown[38] || keysDown[87]) {     // 'upArrow' or 'w'
 		moveY(x, y, y + 32, d.getTime(), 100);
 	}
-	else if (keysDown[39] || keysDown[68]) {     // right arrow
+	else if (keysDown[39] || keysDown[68]) {     // 'rightArrow' or 'd'
 		moveX(y, x, x - 32, d.getTime(), 100);
 	}
-	else if (keysDown[40] || keysDown[83]) {     // down arrow
+	else if (keysDown[40] || keysDown[83]) {     // 'downArrow' or 's'
 		moveY(x, y, y - 32, d.getTime(), 100);
 	}
 	else {
@@ -158,12 +193,12 @@ function moveX(y, xBegin, xEnd, beginTime, moveTime) {
 	var d = new Date();
 	moveProgress = (d.getTime() - beginTime) / moveTime;
 	if (moveProgress >= 1) { // finish move
-		testChunk.draw(ctx, xEnd, y, 32);
+		testChunk.draw(ctx, xEnd, y, 16);
 		setTimeout(moveLoop, 0, xEnd, y);
 	}
 	else { // move part way
 		var x = xBegin + (xEnd - xBegin) * moveProgress;
-		testChunk.draw(ctx, x, y, 32);
+		testChunk.draw(ctx, x, y, 16);
 		setTimeout(moveX, 0, y, xBegin, xEnd, beginTime, moveTime);
 	}
 }
@@ -172,12 +207,12 @@ function moveY(x, yBegin, yEnd, beginTime, moveTime) {
 	var d = new Date();
 	moveProgress = (d.getTime() - beginTime) / moveTime;
 	if (moveProgress >= 1) { // finish move
-		testChunk.draw(ctx, x, yEnd, 32);
+		testChunk.draw(ctx, x, yEnd, 16);
 		setTimeout(moveLoop, 0, x, yEnd);
 	}
 	else { // move part way
 		var y = yBegin + (yEnd - yBegin) * moveProgress;
-		testChunk.draw(ctx, x, y, 32);
+		testChunk.draw(ctx, x, y, 16);
 		setTimeout(moveY, 0, x, yBegin, yEnd, beginTime, moveTime);
 	}
 }
