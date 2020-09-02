@@ -5,19 +5,50 @@ ctx.mozImageSmoothingEnabled = false;
 ctx.imageSmoothingEnabled = false;
 
 class Tileset {
-	constructor(imageSrc, width, height, tileSize) {
-		this.loaded = false;
-		this.tileset = new Image();
+	constructor(imageSrc, fileSrc) {
+		this.imageLoaded = false;
+		this.tileImage;
+		this.tileData = [];
+		this.width = -1;
+		this.height = -1;
+		this.maxTileNum = -1;
+		this.tileSize = -1;
+		this.loadImage(imageSrc);
+		this.loadData(fileSrc);
+	}
+	loadImage(imageSrc) {
+		this.tileImage = new Image();
 		var ts = this;
-		this.tileset.onload = function(){
-			console.log("Tileset: " + imageSrc + " loaded");
-		    ts.loaded = true;
+		this.tileImage.onload = function(){
+		    ts.imageLoaded = true;
+		    console.log("Tileset: tileImage loaded: + " + imageSrc);
 		};
-		this.tileset.src = imageSrc;
-		this.width = width;
-		this.height = height;
-		this.maxTileNum = width * height - 1;
-		this.tileSize = tileSize;
+		this.tileImage.src = imageSrc;
+	}
+	loadData(fileSrc) {
+		var ts = this;
+		var req = new XMLHttpRequest();
+		req.onload = function(){
+		    ts.parseData(this.responseText);
+		    console.log("Tileset: tileData loaded: " + fileSrc);
+		};
+		req.open('GET', fileSrc);
+		req.send();
+	}
+	parseData(dataString) {
+		var stringArr = mapString.match(/[^\s]+/g);
+		this.width = parseInt(stringArr[0]);
+		this.height = parseInt(stringArr[1]);
+		this.maxTileNum = this.width * this.height - 1;
+		this.tileSize = parseInt(stringArr[2]);
+		this.tileData = [];
+		for (var y = 0; y < this.height; y++) {
+			var tempRow = [];
+			for (var x = 0; x < this.width; x++) {
+				tempRow.push(parseInt(stringArr[3 + 32 * y + x]));
+			}
+			this.tileData.push(tempRow);
+		}
 	}
 	drawTile(context, tileNum, x, y, size) {
 		if(0 <= tileNum && tileNum <= this.maxTileNum) {
@@ -30,7 +61,7 @@ class Tileset {
 		}
 	}
 	isLoaded() {
-		return this.loaded;
+		return this.imageLoaded && this.maxTileNum != -1;
 	}
 }
 
@@ -152,9 +183,9 @@ document.addEventListener("keyup", function(event) {
 
 // -------------------------------------------------------------------------------------------
 
-myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/chunks/chunkMap");
-myChunkMap.loadChunk("https://raw.githubusercontent.com/vince8nt/RPGgame/master/chunks/test");
-myTileset = new Tileset("images/tileset.png", 16, 16, 16);
+myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
+myChunkMap.loadChunk("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
+myTileset = new Tileset("images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
 var testChunk;
 setTimeout(waitForLoad, 100, 0, 0);
 
