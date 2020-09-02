@@ -109,6 +109,7 @@ class ChunkMap {
 		this.chunkBottoms = [];
 		this.chunkTops = [];
 		this.length = 0;
+		this.numChunks = 0;
 		this.loadMap(fileSrc);
 	}
 	loadMap(fileSrc) {
@@ -135,18 +136,18 @@ class ChunkMap {
 		}
 		console.log("map is: " + this.map)
 	}
-	loadChunkData(fileSrc) { // currently chunks need to be loaded in order
+	loadChunkData(fileSrc) {
+		var index = this.length++;
 		var cm = this;
 		var req = new XMLHttpRequest();
 		req.onload = function(){
-		    cm.parseChunkData(this.responseText);
-		    console.log("ChunkMap: chunk " + cm.chunkTops.length + " data loaded: " + fileSrc);
+		    cm.parseChunkData(this.responseText, index);
+		    console.log("ChunkMap: chunk " + index + " data loaded: " + fileSrc);
 		};
 		req.open('GET', fileSrc);
 		req.send();
-		this.length++;
 	}
-	parseChunkData(chunkString) {
+	parseChunkData(chunkString, index) {
 		var stringArr = chunkString.match(/[^\s]+/g);
 		var tempChunkBottom = [];
 		var tempChunkTop = [];
@@ -160,8 +161,9 @@ class ChunkMap {
 			tempChunkBottom.push(tempRowBottom);
 			tempChunkTop.push(tempRowTop);
 		}
-		this.chunkBottoms.push(tempChunkBottom);
-		this.chunkTops.push(tempChunkTop);
+		this.chunkBottoms[index] = tempChunkBottom;
+		this.chunkTops[index] = tempChunkTop;
+		this.numChunks++;
 	}
 	getChunkData(x, y) {
 		const index = this.map[y][x];
@@ -169,7 +171,7 @@ class ChunkMap {
 		return [this.chunkBottoms[index], this.chunkTops[index]];
 	}
 	isLoaded() {
-		return this.chunkTops.length == this.length && this.mapWidth != -1;
+		return this.numChunks == this.length && this.mapWidth != -1;
 	}
 }
 
@@ -208,6 +210,7 @@ document.addEventListener("keyup", function(event) {
 
 // load files
 myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
+myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/empty");
 myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
 myTileset = new Tileset(
 	"images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
