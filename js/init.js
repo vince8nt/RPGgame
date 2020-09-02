@@ -26,18 +26,17 @@ myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/mas
 
 
 var myChunkDisplay;
+var drawSize;
 setTimeout(waitForLoad, 100, 0, 0);
 
 // wait for all files to be loaded and then start the game
 function waitForLoad() {
 	if (myTileset.isLoaded() && myChunkMap.isLoaded()) {
-		console.log("all files loaded: starting game")
-		myChunkDisplay = new ChunkDisplay(ctx, myChunkMap, 32, myTileset);
-		myChunkDisplay.draw(0, 0);
-		setTimeout(moveLoop, 0, 0, 0);
+		console.log("all files loaded: starting game");
+		setTimeout(startGame, 0);
 	}
 	else {
-		console.log("not all files loaded: trying again in 1 second...")
+		console.log("not all files loaded: trying again in 1 second...");
 		setTimeout(waitForLoad, 1000, 0, 0);
 	}
 }
