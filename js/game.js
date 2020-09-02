@@ -5,8 +5,7 @@ ctx.mozImageSmoothingEnabled = false;
 ctx.imageSmoothingEnabled = false;
 
 class Tileset {
-	constructor(context, imageSrc, width, height, tileSize) {
-		this.context = context;
+	constructor(imageSrc, width, height, tileSize) {
 		this.loaded = false;
 		this.tileset = new Image();
 		var ts = this;
@@ -19,31 +18,61 @@ class Tileset {
 		this.height = height;
 		this.tileSize = tileSize;
 	}
-	drawTile(tileNum, x, y, size) {
+	drawTile(context, tileNum, x, y, size) {
 		var tileX = tileNum % this.width;
 		var tileY = Math.floor(tileNum / this.width);
 		var tileSize = this.tileSize;
 		var imgX = tileX * tileSize;
 		var imgY = tileY * tileSize;
-		this.context.drawImage(this.tileset, imgX, imgY, tileSize, tileSize, x, y, size, size);
-	}
-	drawChunk(chunk, x, y, size) {
-		for (var j = 0; j < 32; j++) {
-			for (var i = 0; i < 32; i++) {
-				this.drawTile(chunk[j][i], x + i * size, y + j * size, size);
-			}
-		}
+		context.drawImage(this.tileset, imgX, imgY, tileSize, tileSize, x, y, size, size);
 	}
 	isLoaded() {
 		return this.loaded;
 	}
 }
 
+class Chunk {
+	constructor(tileset, data) {
+		this.bottomImg;
+		this.topImg;
+		console.log("new chunk made:");
+		console.log(data);
+		this.renderBottom(tileset, data[0]);
+		this.renderTop(tileset, data[1]);
+	}
+	renderBottom(tileset, bottomData) {
+		const canvas = new OffscreenCanvas(512, 512);
+		const context = canvas.getContext('2d');
+		for (var y = 0; y < 32; y++) {
+			for (var x = 0; x < 32; x++)
+				tileset.drawTile(context, bottomData[y][x], x * 16, y * 16, 16);
+		}
+		this.bottomImg = context.getImageData(0, 0, 512, 512);
+	}
+	renderTop(tileset, topData) {
+		this.topImg = [];
+		for (var y = 0; y < 32; y++) {
+			const canvas = new OffscreenCanvas(512, 16);
+			const context = canvas.getContext('2d');
+			for (var x = 0; x < 32; x++)
+				tileset.drawTile(context, topData[y][x], x * 16, 0, 16);
+			this.topImg.push(context.getImageData(0, 0, 512, 16));
+		}
+	}
+	draw(context, x, y, size) { // temporary function
+		context.drawImage(this.bottomImg, x, y, size * 32, size * 32);
+		for (var j = 0; j < 32; j++)
+			context.drawImage(this.topImg[j], x, y + j * size, size * 32, size);
+	}
+}
+
 class ChunkMap {
 	constructor() {
-		this.chunks = [];
+		this.chunkBottoms = [];
+		this.chunkTops = [];
+		this.length = 0;
 	}
-	loadChunk(fileSrc) {
+	loadChunk(fileSrc) { // currently chunks need to be loaded in order
 		var cm = this;
 		var req = new XMLHttpRequest();
 		req.onload = function(){
@@ -51,23 +80,30 @@ class ChunkMap {
 		};
 		req.open('GET', fileSrc);
 		req.send();
+		this.length++;
 	}
 	parseChunk(chunkString) {
 		var stringArr = chunkString.match(/[^\s]+/g);
-		var tempChunk = [];
+		var tempChunkBottom = [];
+		var tempChunkTop = [];
 		for (var y = 0; y < 32; y++) {
-			var tempRow = [];
-			for (var x = 0; x < 32; x++)
-				tempRow.push(stringArr[32 * y + x]);
-			tempChunk.push(tempRow);
+			var tempRowBottom = [];
+			var tempRowTop = [];
+			for (var x = 0; x < 32; x++) {
+				tempRowBottom.push(parseInt(stringArr[32 * y + x]));
+				tempRowTop.push(parseInt(stringArr[32 * y + x + 1024]));
+			}
+			tempChunkBottom.push(tempRowBottom);
+			tempChunkTop.push(tempRowTop);
 		}
-		this.chunks.push(tempChunk);
+		this.chunkBottoms.push(tempChunkBottom);
+		this.chunkTops.push(tempChunkTop);
 	}
 	getChunk(index) {
-		return this.chunks[index];
+		return [this.chunkBottoms[index], this.chunkTops[index]];
 	}
-	getLength() {
-		return this.chunks.length;
+	isLoaded() {
+		return this.chunkTops.length == this.length;
 	}
 }
 
@@ -86,23 +122,17 @@ document.addEventListener("keyup", function(event) {
 
 myChunkMap = new ChunkMap();
 myChunkMap.loadChunk("https://raw.githubusercontent.com/vince8nt/RPGgame/master/chunks/test");
-myTileset = new Tileset(ctx, "images/tileset.png", 16, 16, 16);
-waitForLoad();
+myTileset = new Tileset("images/tileset.png", 16, 16, 16);
+var testChunk;
+setTimeout(waitForLoad, 100, 0, 0);
 
 function waitForLoad() {
-	console.log("tileset: " + myTileset.isLoaded());
-	console.log("chunk: " + myChunkMap.getLength());
-	if (myTileset.isLoaded() && myChunkMap.getLength() == 1) {
-		testDraw(0, 0);
+	if (myTileset.isLoaded() && myChunkMap.isLoaded()) {
+		testChunk = new Chunk(myTileset, myChunkMap.getChunk(0));
 		setTimeout(moveLoop, 0, 0, 0);
 	}
 	else
 		setTimeout(waitForLoad, 500, 0, 0);
-}
-
-function testDraw(x, y) {
-	ctx.clearRect(0, 0, c.width, c.height);
-	myTileset.drawChunk(myChunkMap.getChunk(0), x, y, 32);
 }
 
 function moveLoop(x, y) {
@@ -128,12 +158,12 @@ function moveX(y, xBegin, xEnd, beginTime, moveTime) {
 	var d = new Date();
 	moveProgress = (d.getTime() - beginTime) / moveTime;
 	if (moveProgress >= 1) { // finish move
-		testDraw(xEnd, y);
+		testChunk.draw(ctx, xEnd, y, 32);
 		setTimeout(moveLoop, 0, xEnd, y);
 	}
 	else { // move part way
 		var x = xBegin + (xEnd - xBegin) * moveProgress;
-		testDraw(x, y);
+		testChunk.draw(ctx, x, y, 32);
 		setTimeout(moveX, 0, y, xBegin, xEnd, beginTime, moveTime);
 	}
 }
@@ -142,12 +172,12 @@ function moveY(x, yBegin, yEnd, beginTime, moveTime) {
 	var d = new Date();
 	moveProgress = (d.getTime() - beginTime) / moveTime;
 	if (moveProgress >= 1) { // finish move
-		testDraw(x, yEnd);
+		testChunk.draw(ctx, x, yEnd, 32);
 		setTimeout(moveLoop, 0, x, yEnd);
 	}
 	else { // move part way
 		var y = yBegin + (yEnd - yBegin) * moveProgress;
-		testDraw(x, y);
+		testChunk.draw(ctx, x, y, 32);
 		setTimeout(moveY, 0, x, yBegin, yEnd, beginTime, moveTime);
 	}
 }
