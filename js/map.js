@@ -134,7 +134,7 @@ class ChunkMap {
 			}
 			this.map.push(tempRow);
 		}
-		console.log("map is: " + this.map)
+		console.log("ChunkMap: map is: " + this.map.length + "x" + this.map[0].length);
 	}
 	loadChunkData(fileSrc) {
 		var index = this.length++;
@@ -167,7 +167,6 @@ class ChunkMap {
 	}
 	getChunkData(x, y) {
 		const index = this.map[y][x];
-		console.log("index is: " + index)
 		return [this.chunkBottoms[index], this.chunkTops[index]];
 	}
 	isLoaded() {
@@ -191,7 +190,7 @@ class ChunkDisplay { // change this for later
 		this.chunkTopLeft.draw(this.context, x, y, this.size);
 		this.chunkTopRight.draw(this.context, x + 32 * this.size, y, this.size);
 		this.chunkBottomLeft.draw(this.context, x, y + 32 * this.size, this.size);
-		this.chunkBottomLeft.draw(this.context, x + 32 * this.size, y + 32 * this.size, this.size);
+		this.chunkBottomRight.draw(this.context, x + 32 * this.size, y + 32 * this.size, this.size);
 	}
 }
 
@@ -210,8 +209,11 @@ document.addEventListener("keyup", function(event) {
 
 // load files
 myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
+
 myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/empty");
 myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
+
+
 myTileset = new Tileset(
 	"images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
 
