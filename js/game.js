@@ -85,6 +85,7 @@ class ChunkMap {
 		var req = new XMLHttpRequest();
 		req.onload = function(){
 		    cm.parseMap(this.responseText);
+		    console.log("ChunkMap: map loaded: " + fileSrc);
 		};
 		req.open('GET', fileSrc);
 		req.send();
@@ -107,6 +108,7 @@ class ChunkMap {
 		var req = new XMLHttpRequest();
 		req.onload = function(){
 		    cm.parseChunk(this.responseText);
+		    console.log("ChunkMap: chunk " + cm.chunkTops.length + " loaded: " + fileSrc);
 		};
 		req.open('GET', fileSrc);
 		req.send();
@@ -128,9 +130,8 @@ class ChunkMap {
 		}
 		this.chunkBottoms.push(tempChunkBottom);
 		this.chunkTops.push(tempChunkTop);
-		console.log("ChunkMap: chunk data " + this.chunkTops.length + " loaded");
 	}
-	getChunk(index) {
+	getChunkData(index) {
 		return [this.chunkBottoms[index], this.chunkTops[index]];
 	}
 	isLoaded() {
@@ -160,7 +161,7 @@ setTimeout(waitForLoad, 100, 0, 0);
 function waitForLoad() {
 	if (myTileset.isLoaded() && myChunkMap.isLoaded()) {
 		console.log("all files loaded: starting game")
-		testChunk = new Chunk(myTileset, myChunkMap.getChunk(0));
+		testChunk = new Chunk(myTileset, myChunkMap.getChunkData(0));
 		testChunk.draw(ctx, 0, 0, 16);
 		setTimeout(moveLoop, 0, 0, 0);
 	}
