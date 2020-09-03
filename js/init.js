@@ -31,6 +31,7 @@ myChunkMap.loadNpcData("https://raw.githubusercontent.com/vince8nt/RPGgame/maste
 
 var myChunkDisplay;
 var drawSize;
+ctx.fillStyle = "#FF0000";
 setTimeout(waitForLoad, 100, 0, 0);
 
 // wait for all files to be loaded and then start the game

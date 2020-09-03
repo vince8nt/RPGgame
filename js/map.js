@@ -62,6 +62,7 @@ class Tileset {
 
 class NPC {
 	constructor(x, y, otherStuff) {
+		console.log("NPC: NPC created at " + x + ", " + y + " with data: " + otherStuff);
 		this.x = x;
 		this.y = y;
 		this.xOff = 0;       // -1 < x < 1
@@ -228,7 +229,7 @@ class ChunkMap {
 			tempNPC.push(stringArr[3 + i * 3]);
 			tempChunkNPCs.push(tempNPC);
 		}
-		this.npcData.push(tempChunkNPCs);
+		this.npcData[index] = tempChunkNPCs;
 		this.npcDataParsed++;
 	}
 	getChunkData(x, y) {
@@ -265,9 +266,6 @@ class ChunkDisplay {
 		this.dispChunks[0].push(new Chunk(tileset, map.getChunkData(this.mapX + 1, this.mapY)));
 		this.dispChunks[1].push(new Chunk(tileset, map.getChunkData(this.mapX, this.mapY + 1)));
 		this.dispChunks[1].push(new Chunk(tileset, map.getChunkData(this.mapX + 1, this.mapY + 1)));
-
-		this.dispChunks[1][1].addNPC(5, 5, 0);
-		this.dispChunks[1][1].addNPC(10, 5, 0);
 	}
 	setMapCoords(x, y) {
 		var newMapX = Math.round(x / 32) - 1;
