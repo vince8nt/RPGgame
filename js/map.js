@@ -60,12 +60,38 @@ class Tileset {
 	}
 }
 
+class NPC {
+	constructor(x, y, otherStuff) {
+		this.x = x;
+		this.y = y;
+		this.xOff = 0;       // -1 < x < 1
+		this.yOff = 0;       // -1 < y < 1
+	}
+	draw(context, x, y, size) { // change this later
+		context.fillRect(x + this.xOff * size, y + this.yOff * size, size, size);
+	}
+}
+
 class Chunk {
 	constructor(tileset, data) {
 		this.bottomImg = new Image();
-		this.topImg = new Image();
+		this.topImg = [];
 		this.renderBottom(tileset, data[0]);
 		this.renderTop(tileset, data[1]);
+
+		this.npcList = [];
+		this.npcMap = []; // each entry represents an index on the npcList
+		// -1 for empty tile      -2 for taken tile (but no npc)
+		for (var y = 0; y < 32; y++) {
+			var tempArr = [];
+			for (var x = 0; x < 32; x++)
+				tempArr.push(-1);
+			this.npcMap.push(tempArr);
+		}
+		var npcData = data[2];
+		for (var i = 0; i < npcData.length; i++) {
+			this.addNPC(npcData[i][0], npcData[i][1], npcData[i][2]);
+		}
 	}
 	renderBottom(tileset, bottomData) {
 		const canvas = new OffscreenCanvas(512, 512);
@@ -88,10 +114,19 @@ class Chunk {
 			this.topImg.push(canvas);
 		}
 	}
+	addNPC(x, y, otherStuff) {
+		this.npcMap[y][x] = this.npcList.length;
+		this.npcList.push(new NPC(x, y, otherStuff));
+	}
 	draw(context, x, y, size) { // temporary function
 		context.drawImage(this.bottomImg, x, y, size * 32, size * 32);
-		for (var j = 0; j < 32; j++)
+		for (var j = 0; j < 32; j++) {
 			context.drawImage(this.topImg[j], x, y + j * size, size * 32, size);
+			for (var i = 0; i < 32; i++) {
+				if (0 <= this.npcMap[j][i])
+					this.npcList[this.npcMap[j][i]].draw(context, x + i * size, y + j * size, size);
+			}
+		}
 	}
 }
 
@@ -100,10 +135,14 @@ class ChunkMap {
 		this.mapWidth = -1;
 		this.mapHeight = -1;
 		this.map = [];
+		this.npcMap = [];
 		this.chunkBottoms = [];
 		this.chunkTops = [];
-		this.length = 0;
-		this.numChunks = 0;
+		this.npcData = [];
+		this.chunksLoaded = 0;
+		this.chunksParsed = 0;
+		this.npcDataLoaded = 0;
+		this.npcDataParsed = 0;
 		this.loadMap(fileSrc);
 	}
 	loadMap(fileSrc) {
@@ -121,6 +160,7 @@ class ChunkMap {
 		this.mapWidth = parseInt(stringArr[0]);
 		this.mapHeight = parseInt(stringArr[1]);
 		this.map = [];
+		this.npcMap = [];
 		for (var y = 0; y < this.mapHeight; y++) {
 			var tempRow = [];
 			for (var x = 0; x < this.mapWidth; x++) {
@@ -128,10 +168,17 @@ class ChunkMap {
 			}
 			this.map.push(tempRow);
 		}
+		for (var y = 0; y < this.mapHeight; y++) {
+			var tempRow = [];
+			for (var x = 0; x < this.mapWidth; x++) {
+				tempRow.push(parseInt(stringArr[2 + this.mapWidth * this.mapHeight + this.mapWidth * y + x]));
+			}
+			this.npcMap.push(tempRow);
+		}
 		console.log("ChunkMap: map is: " + this.map.length + "x" + this.map[0].length);
 	}
 	loadChunkData(fileSrc) {
-		var index = this.length++;
+		var index = this.chunksLoaded++;
 		var cm = this;
 		var req = new XMLHttpRequest();
 		req.onload = function(){
@@ -157,16 +204,48 @@ class ChunkMap {
 		}
 		this.chunkBottoms[index] = tempChunkBottom;
 		this.chunkTops[index] = tempChunkTop;
-		this.numChunks++;
+		this.chunksParsed++;
+	}
+	loadNpcData(fileSrc) {
+		var index = this.npcDataLoaded++;
+		var cm = this;
+		var req = new XMLHttpRequest();
+		req.onload = function(){
+		    cm.parseNpcData(this.responseText, index);
+		    console.log("ChunkMap: npc data " + index + " loaded: " + fileSrc);
+		};
+		req.open('GET', fileSrc);
+		req.send();
+	}
+	parseNpcData(npcString, index) {
+		var stringArr = npcString.match(/[^\s]+/g);
+		var length = parseInt(stringArr[0]);
+		var tempChunkNPCs = [];
+		for (var i = 0; i < length; i++) {
+			var tempNPC = [];
+			tempNPC.push(parseInt(stringArr[1 + i * 3]));
+			tempNPC.push(parseInt(stringArr[2 + i * 3]));
+			tempNPC.push(stringArr[3 + i * 3]);
+			tempChunkNPCs.push(tempNPC);
+		}
+		this.npcData.push(tempChunkNPCs);
+		this.npcDataParsed++;
 	}
 	getChunkData(x, y) {
-		var index = 0;
-		if (0 <= x && x < this.mapWidth && 0 <= y && y < this.mapHeight)
-			index = this.map[y][x];
-		return [this.chunkBottoms[index], this.chunkTops[index]];
+		var chunkIndex = 0;
+		var npcIndex = 0;
+		if (0 <= x && x < this.mapWidth && 0 <= y && y < this.mapHeight) {
+			chunkIndex = this.map[y][x];
+			npcIndex = this.npcMap[y][x];
+		}
+		return [this.chunkBottoms[chunkIndex], this.chunkTops[chunkIndex], this.npcData[npcIndex]];
 	}
 	isLoaded() {
-		return this.numChunks == this.length && this.mapWidth != -1;
+		return (
+			this.chunksParsed == this.chunksLoaded &&
+			this.npcDataLoaded == this.npcDataParsed &&
+			this.mapWidth != -1
+		);
 	}
 }
 
@@ -186,6 +265,9 @@ class ChunkDisplay {
 		this.dispChunks[0].push(new Chunk(tileset, map.getChunkData(this.mapX + 1, this.mapY)));
 		this.dispChunks[1].push(new Chunk(tileset, map.getChunkData(this.mapX, this.mapY + 1)));
 		this.dispChunks[1].push(new Chunk(tileset, map.getChunkData(this.mapX + 1, this.mapY + 1)));
+
+		this.dispChunks[1][1].addNPC(5, 5, 0);
+		this.dispChunks[1][1].addNPC(10, 5, 0);
 	}
 	setMapCoords(x, y) {
 		var newMapX = Math.round(x / 32) - 1;

@@ -19,10 +19,14 @@ document.addEventListener("keyup", function(event) {
 // load files
 myTileset = new Tileset(
 	"images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
+
 myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
 
 myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/empty");
 myChunkMap.loadChunkData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunks/test");
+
+myChunkMap.loadNpcData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkNPCs/empty");
+myChunkMap.loadNpcData("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkNPCs/test");
 
 
 var myChunkDisplay;
