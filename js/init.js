@@ -18,7 +18,7 @@ document.addEventListener("keyup", function(event) {
 
 // load files
 myTileset = new Tileset(
-	"images/tileset.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData");
+	"images/ts2.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData2");
 
 myChunkMap = new ChunkMap("https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/chunkMap");
 
