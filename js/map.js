@@ -236,14 +236,16 @@ class ChunkDisplay {
 		var dispChunksY = 1 - Math.round((y % 32) / 32);
 		var tilesX = x % 32 + 32 * dispChunksX;
 		var tilesY = y % 32 + 32 * dispChunksY;
-		var drawX = this.cX - tilesX * size;
-		var drawY = this.cY - tilesY * size;
+		var drawX = this.cX - (size / 2) - (tilesX * size);
+		var drawY = this.cY - (size / 2) - (tilesY * size);
 
 		context.clearRect(0, 0, canvas.width, canvas.height);
 		this.dispChunks[0][0].draw(context, drawX, drawY, size);
 		this.dispChunks[0][1].draw(context, drawX + 32 * size, drawY, size);
 		this.dispChunks[1][0].draw(context, drawX, drawY + 32 * size, size);
 		this.dispChunks[1][1].draw(context, drawX + 32 * size, drawY + 32 * size, size);
+
+		context.fillRect(this.cX - size / 2, this.cY - size / 2, size, size);
 	}
 }
 

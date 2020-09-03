@@ -9,18 +9,32 @@ function startGame() {
 function moveLoop(x, y) {
 	var d = new Date();
 	if (keysDown[37] || keysDown[65]) {          // 'leftArrow' or 'a'
-		moveX(y, x, x - 1, d.getTime(), 100);
+		moveX(y, x, x - 1, d.getTime(), 320);
 	}
 	else if (keysDown[38] || keysDown[87]) {     // 'upArrow' or 'w'
-		moveY(x, y, y - 1, d.getTime(), 100);
+		moveY(x, y, y - 1, d.getTime(), 320);
 	}
 	else if (keysDown[39] || keysDown[68]) {     // 'rightArrow' or 'd'
-		moveX(y, x, x + 1, d.getTime(), 100);
+		moveX(y, x, x + 1, d.getTime(), 320);
 	}
 	else if (keysDown[40] || keysDown[83]) {     // 'downArrow' or 's'
-		moveY(x, y, y + 1, d.getTime(), 100);
+		moveY(x, y, y + 1, d.getTime(), 320);
 	}
 	else {
+		if (keysDown[187]) {                     // '+'
+			console.log("plus pressed");
+			if (drawSize < 128) {
+				drawSize++;
+				myChunkDisplay.draw(c, ctx, x, y, drawSize);
+			}
+		}
+		else if (keysDown[189]) {                // '-'
+			console.log("minus pressed");
+			if (drawSize > 16) {
+				drawSize--;
+				myChunkDisplay.draw(c, ctx, x, y, drawSize);
+			}
+		}
 		setTimeout(moveLoop, 0, x, y);
 	}
 }
