@@ -6,9 +6,16 @@
 	</head>
 	<body>
 		<center>
-			<h1 style="font-family: Arial Black; color: blue;">Title Here</h1>
-			<canvas id="gameContainer" width="1024" height="512" style = "border: solid black 4px;">
+			<h1 style="font-family: Arial Black; color: blue;">RPG Game</h1>
+			<h2 style="font-family: Arial Black; color: blue;">Currently a test of tilesets and chunks</h2>
+			<canvas id="gameContainer" width="736" height="532" style = "border: solid black 4px;">
 			</canvas>
+
+			<div style = "width: 600px; font-family: Arial;">
+				<p>How to play:<br>move around with 'arrow keys' or 'w a s d'<br>'+' to zoom in and '-' to zoom out.</p>
+				<p>All of the tiles displayed come from a single 'tileset' image. They appear random, but that is just because the chunk data is randomly generated. Chunks are a 32*32 block of tiles. At any given point, 4 chunks will be loaded. To load the chunks, tiles are drawn onto offscreen canvases. Then, as the player moves around, the offscreen canvases can be directly drawn onto the main canvas, saving time.</p>
+				<p>To see the chunk loading process in action, zoom out with '-'.</p>
+			</div>
 			
 		</center>
 		

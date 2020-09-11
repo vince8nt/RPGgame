@@ -252,8 +252,7 @@ class ChunkMap {
 
 class ChunkDisplay {
 	constructor(tileset, map, x, y) {
-		this.cX = 512; // use these later
-		this.cY = 256;
+		this.updateCenter();
 
 		this.tileset = tileset;
 		this.map = map;
@@ -266,6 +265,10 @@ class ChunkDisplay {
 		this.dispChunks[0].push(new Chunk(tileset, map.getChunkData(this.mapX + 1, this.mapY)));
 		this.dispChunks[1].push(new Chunk(tileset, map.getChunkData(this.mapX, this.mapY + 1)));
 		this.dispChunks[1].push(new Chunk(tileset, map.getChunkData(this.mapX + 1, this.mapY + 1)));
+	}
+	updateCenter() {
+		this.cX = c.width / 2;
+		this.cY = c.height / 2;
 	}
 	setMapCoords(x, y) {
 		var newMapX = Math.round(x / 32) - 1;

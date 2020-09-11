@@ -16,6 +16,23 @@ document.addEventListener("keyup", function(event) {
 	keysDown[event.keyCode] = false;
 });
 
+// keep track of page size and sets the canvas to match
+window.addEventListener('resize', function(event){
+	var w = window.outerWidth - 100;
+	var h = window.outerHeight - 200;
+	var basedH = w * (532/736);
+	var basedW = h * (736/532);
+	if (basedH <= h) {
+		c.width = w;
+		c.height = basedH;
+	}
+	else {
+		c.width = basedW;
+		c.height = h;
+	}
+	myChunkDisplay.updateCenter();
+});
+
 // load files
 myTileset = new Tileset(
 	"images/ts2.png", "https://raw.githubusercontent.com/vince8nt/RPGgame/master/gameData/tileData2");
